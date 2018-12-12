@@ -1,0 +1,380 @@
+let time = 0;
+console.log(__dirname)
+
+let timer = setInterval(function(){
+    time += 2;
+    console.log(`${time} seconds have passed`)
+    if (time >= 6){
+        clearInterval(timer);
+    }
+},2000);
+
+console.log(__filename);
+
+// Modules and Require - count.js file
+
+let counter = function(array){
+    return `there are ${array.length} items in the array`;
+};
+let array = [0,1,2,3,4,5,6,7,8,9];
+console.log(counter(array));
+
+modules.exports = counter; // makes function expression globally available
+
+// Modules and Require - app.js file
+
+let counter = require("./count"); // set import as variable
+
+console.log(counter([2,4,6,8])); // not available until explicitly allowed in parent module using module.exports
+
+// Multiple modules
+
+// stuff.js
+
+module.exports.counter = function(array){
+    return `there are ${array.length} items in the array`;
+};
+
+module.exports.adder = function(a,b){
+    return `the sum of ${a} and ${b} is ${a + b}`;
+}
+
+module.exports.pi = 3.142;
+
+/*
+we could also us an object to do the above exports
+module.exports= {
+    counter:counter,
+    adder:adder,
+    pi:pi
+}
+*/
+
+// app.js
+
+let stuff = require("./stuff");
+
+console.log(stuff.counter([2,4,6,8]));
+console.log(stuff.adder(5,10));
+console.log(stuff.pi);
+
+// or add the import into another import
+
+console.log(stuff.adder(stuff.pi, 10));
+
+// events module
+
+let events = require("events"); // inbuilt module from node
+
+let myEmitter = new events.EventEmitter();
+
+myEmitter.on("someEvent", function(msg){
+    console.log(msg);
+});
+
+myEmitter.emit("someEvent", "The event was emmited");
+
+// Inheriting events
+let events = require("events");
+let util = require("util");
+
+//get Person to inherit event event emitter
+
+let Person = function(name){
+    this.name = name;
+};
+
+util.inherits(Person, events.EventEmitter);
+
+let james = new Person('James');
+let mary = new Person('Mary');
+let ryu = new Person('Ryu');
+let people = [james, mary, ryu];
+
+people.forEach(function(person){
+    person.on('speak', function(msg){
+        console.log(person.name + ' said: ' + msg);
+    });
+});
+
+james.emit('speak', 'Hey Dudes!');
+mary.emit("speak", "Whassssaaaaaappppp!!!?");
+ryu.emit("speak", "Haiiiiiiduken!!");
+
+// reading files using fs module - synchronous
+
+let fs = require('fs');
+let fileRead = fs.readFileSync('simple.txt', 'utf8');
+console.log(fileRead);
+
+
+// write file - synchronous
+
+let fileWrite = fs.writeFileSync("write.txt", fileRead);
+
+// Async
+
+let fs = require('fs');
+fs.readFile('simple.txt', 'utf8',function(err, data){
+    fs.writeFileSync("write.txt", data+"\nSomething Else!");
+});
+
+//setting up a server
+
+let http = require("http"); // inbuilt module
+
+let server = http.createServer(function(req,res){ // create server - takes request and response as args
+    res.writeHead(200, {"Content-Type": "text/plain" }); // specifies content type
+    res.end("Hey Neildor!"); // outputs response to screen
+});
+
+server.listen(3000,"127.0.0.1"); // sets up a listener on port 3000
+console.log("Listening to port 3000"); // logs in node console
+
+// Streams and buffers
+// Buffer - temporary storage spot for a small chunk of data
+// Stream - flow of data (sometimes a full buffer) over time from ne place to another
+
+// customisable streams in node js (readable or writeble (or both(duplex)))
+
+let fs = require("fs");
+
+let readableStream = fs.createReadStream(__dirname+ "/simple.txt", "utf8");
+let writebleStream = fs.createWriteStream(__dirname + "/write.txt");
+
+readableStream.on("data",function(chunk){
+    console.log("new chunk recieved");
+    writebleStream.write(chunk);
+});
+
+// or even quicker using PIPES
+
+// Pipes - takes data from read stream and pipes it to write stream, automatically listens for data events
+
+let readableStream = fs.createReadStream(__dirname+ "/simple.txt", "utf8"); // read from
+let writebleStream = fs.createWriteStream(__dirname + "/write.txt"); // write to
+
+readableStream.pipe(writebleStream); // that's it!
+
+// Now we can use this pipe method inside the server, to transfer read info to the client!!
+
+let fs = require("fs");
+let http = require("http");
+
+let server = http.createServer(function(req,res){ 
+    console.log("request was made: " + req.url);
+    res.writeHead(200, {"Content-Type": "text/plain" });
+    let readableStream = fs.createReadStream(__dirname+ "/simple.txt", "utf8"); // read from
+    readableStream.pipe(res); // pipes to res
+});
+
+server.listen(3000,"127.0.0.1");
+console.log("Listening to port 3000");
+
+// serving HTML
+
+let fs = require("fs");
+let http = require("http");
+
+let server = http.createServer(function(req,res){
+    console.log("request was made: " + req.url);
+    res.writeHead(200, {"Content-Type": "text/html" }); // change text type
+    let readableStream = fs.createReadStream(__dirname+ "/index.html", "utf8"); // read from file in __dir
+    readableStream.pipe(res);
+});
+
+server.listen(3000,"127.0.0.1");
+console.log("Listening to port 3000");
+
+// PAGE ROUTING WITH DEFAULT 404 - note, EXPRESS CAN REDUCE CODE FOR THIS
+
+let fs = require("fs");
+let http = require("http");
+
+let server = http.createServer(function(req,res){
+    console.log("request was made: " + req.url);
+    if (req.url === "/home" || req.url === "/"){
+        res.writeHead(200, {"Content-Type":"text/html"});
+        fs.createReadStream(__dirname+"/index.html").pipe(res);
+    }
+    else if(req.url === "/contact"){
+        res.writeHead(200, {"Content-Type":"text/html"});
+        fs.createReadStream(__dirname+"/contact.html").pipe(res);
+    }
+    else if (req.url === "/api/ninjas"){
+        let ninjas = [{name: "Ryu", age: 29},{name: "Yoshi", age: 42}]
+        res.writeHead(200, {"Content-Type":"application/json"})
+        res.end(JSON.stringify(ninjas));
+    }
+    else {
+        res.writeHead(404, {"Content-Type":"text/html"});
+        fs.createReadStream(__dirname+"/oops.html").pipe(res);
+    }
+});
+
+server.listen(3000,"127.0.0.1");
+console.log("Listening to port 3000");
+
+/* NODE PACKAGE MANAGER
+
+command line that comes with node, to allow importing of modules.
+// npm install express // npm uninstall express
+//eg express helps with routing etc...
+*/
+
+/* 
+PACKAGE.json - useful for keeping track of the packages and dependencies for the application
+we can use a command in node js for this .. npm init.. go through the steps in the shell
+when we install express now we can say, npm install express -save    which will add this to the dependencies in the package.json file. This seems to automatically remove from package.json on uninstall too.
+
+you can run 'npm install' to install all dependencies in one go :)
+*/
+
+// NODEMON - monitors application files, if any changes are made, the server restarts automatically!!
+// npm install nodemon -g     for global package install
+// intead of node app.js     nodemon app.js (for live update)
+
+// EXPRESS - routing, TEMPLATE ENGINE integration and middleware
+
+let express = require("express");
+
+let app = express(); // gives us acces to all the methods of express
+
+/*
+we listen for events using HTTP verbs/methods such as GET, POST, DELETE, PUT... in express
+GET - app.get("route", fn)
+POST - app.post("route", fn)
+DELETE - app.delete("route", fn)
+*/
+
+app.get("/", function(req, res){
+    res.send("This is the homepage"); // no need to specify content typein express
+});
+app.get("/contact", function(req, res){
+    res.send("This is the contact page");
+});
+
+// with parameters
+app.get("/profile/:id",function(req,res){ // Dynamic response based on user id
+    res.send("You requested to see the profile of: " + req.params.id); // use PARAMS to access params of req
+    //try http://127.0.0.1:3000/profile/123
+});
+
+// installed ejs and added profile.ejs page to the views folder
+
+app.get("/profile/:name",function(req,res){ // Dynamic response based on user id
+    let data = {age:29,job:"ninja"};
+    res.render("profile", {person: req.params.name, data: data}); // 1st arg sends to page in views, second and third... specifies parameter.
+});
+
+/*
+ html in ejs profile page, look at the syntax for data injection <%= parameter %> 
+<body>
+    <h1>Welcome to the profile of <%= person %></h1> 
+    <p><strong>Age: </strong><%= data.age %></p>
+    <p><strong>Job: </strong><%= data.job %></p>
+</body>
+
+Using JS to iterate through itemsin an array
+
+app.get("/profile/:name",function(req,res){ // Dynamic response based on user id
+    let data = {age:29,job:"ninja", hobbies:["eating","fighting","sleeping"]};
+    res.render("profile", {person: req.params.name, data: data}); // 1st arg sends to page in views, second specifies parameter
+});
+
+<body>
+    <h1>Welcome to the profile of <%= person %></h1> 
+    <p><strong>Age: </strong><%= data.age %></p>
+    <p><strong>Job: </strong><%= data.job %></p>
+    <h2>Hobbies</h2>
+    <ul>
+        <% data.hobbies.forEach(function(item){ %>
+            <li><%= item %></li>
+        <% }); %>
+    </ul>
+</body>
+*/
+
+app.listen(3000); // port listener
+
+// Using views and partial views
+
+// sample html partial view
+
+<body>
+    <% include partials/nav.ejs %> // include the partial view from the partials nav file into index.ejs
+    <h1>Word Up Ya'll</h1> 
+    <p>You won'tfind a website better anywhere else!</p>
+</body>
+</html>
+
+let express = require("express");
+
+let app = express(); // gives us acces to all the methods of express
+app.set("view engine", "ejs");
+
+app.get("/", function(req, res){
+    res.render("index"); // NOTE THE USE OF RENDER to render view from the partials file
+});
+app.get("/contact", function(req, res){
+    res.render("contact");
+});
+
+app.get("/profile/:name",function(req,res){ // Dynamic response based on user id
+    let data = {age:32,job:"Unknown", hobbies:["eating","fighting","sleeping"]};
+    res.render("profile", {person: req.params.name, data: data}); // 1st arg sends to page in views, second specifies parameter
+});
+
+app.listen(3000); // port listener
+
+// referencing external stylesheets in ejs
+// adding a link in the head as normal WILL NOT WORK! we need to use middleware
+
+// use this to request teh assets fileand move onto the next request, such as rendering a view
+
+app.use("/assets", express.static("assets"));
+
+// QUERY STRINGS
+
+http://127.0.0.1:3000/contact?dept=marketing&person=joe
+
+app.get("/contact", function(req, res){
+    console.log(req.query) // req.query accesses anything after the ? in the url
+    res.render("contact");
+});
+
+// populating form data from query string and injecting data into the value fields
+
+// in app.js file
+
+app.get("/contact", function(req, res){
+    res.render("contact",{qs: req.query}); // pass data into object sets qs with a value of the url query
+});
+
+<form id="contact-form">
+    <label for="who">Who do you want to contact?</label>
+    <input type="text" name="who" value="<%=qs.person%>">
+    <label for="department">Which department?</label>
+    <input type="text" name="department" value="<%=qs.dept%>">
+    <label for="email">Your email</label>
+    <input type="email" name="email">
+    <input type="submit" value="submit" />
+</form>
+
+
+// handling POST requests
+
+// need to use the body parser npm library
+
+let urlencodedParser = bodyParser.urlencoded({extended:false})
+
+app.post("/contact", urlencodedParser, function(req, res){ // serves contact page
+    console.log(req.body);
+    res.render("contact-success",{data: req.body}); // redirects to contact-success after post request
+});
+
+// created a contact-success view to pass information back in - normally this would go to db instead
+
+<p>Thanks for getting in touch</p>
+<p>you contacted: <%=data.who%></p>
+<p>from the <%=data.department%> department</p>
